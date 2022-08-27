@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Airport Lengths  (2022)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.0/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.14.0/css/all.css">
+    <style>
+        html, body, #map { width: 100%; height: 100%; margin: 0; background: #fff; }
+
+        .legend {
+            line-height: 40px;
+            font-size: 16px;
+            font-family: 'Titillium Web', sans-serif;
+            width: 190px;
+            color: #333333;
+            padding: 6px 8px;
+            background: white;
+            background: rgba(255,255,255,0.5);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+
+        .legend i {
+            width: 20px;
+            height: 20px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.9;
+        }
+
+        .legend img {
+            width: 16px;
+            height: 16px;
+            margin-right: 3px;
+            float: left;
+        }
+
+        .legend p {
+            font-size: 14px;
+            line-height: 20px;
+            margin: 0;
+        }
+
+    </style>
+    <link href="https://fonts.googleapis.com/css?family=Titillium+Web" rel="stylesheet">
+    <script src="https://unpkg.com/leaflet@1.7.0/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-ajax/2.1.0/leaflet.ajax.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/1.3.4/chroma.min.js"></script>
+</head>
+<body>
+<!-- Our web map and content will go here -->
+<div id="map"></div>
+<script>
+
+
+    // 1. Create a map object.
+    var mymap = L.map('map', {
+        center: [33.046642933620745, -85.25562374416909], //note that we've centered the map to America
+        zoom: 6.5,
+        detectRetina: true // detect whether the sceen is high resolution or not.
+    });
+
+    // 2. Add a base map.
+  L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',).addTo(mymap);
+
+
+    // 3. Add Airbnb GeoJSON Data
+    // Null variable that will hold Airbnb data
+    var Runways = null;
+
+    // 4. build up a set of colors from colorbrewer's dark2 category
+    var colors = chroma.scale('Set1').mode('lch').colors(4);
+
+
+    // 5. dynamically append style classes to this page. The style classes will be used to shade the markers.
+    // We can use a for loop to do this write this css style tag.
+    for (i = 0; i < 3; i++) {
+        $('head').append($("<style> .marker-color-" + (i + 1).toString() + " { color: " + colors[i] + "; font-size: 60px; text-shadow: 0 0 3px #ffffff;} </style>"));
+    }
+
+
+    // Get GeoJSON and put it on the map when it loads
+    // Make sure you have the correct directory path below
+    // You can see we're also adding attribution information for our data sources
+    Runways.geojson = L.geoJson.ajax("assets/Runways.geojson",{
+
+      // assign a function to the onEachFeature parameter of the airbnb_listings object.
+      // Then each (point) feature will have a popup window.
+      // The content of the popup window is the value of `property_t` from the attribute table
+      onEachFeature: function (feature, layer) {
+           layer.bindPopup("Runway Heading; "+ feature.properties.DESIGNATOR
+           + " LENGTH; "+ feature.properties.LENGTH + " FT");
+      },
+
+
+      pointToLayer: function(features, LENGTH) {
+                var id = 0;
+                if (feature.properties.LENGTH = 0- 1000) { id = 0; }
+                 if (feature.properties.LENGTH = 1000- 2500)  { id = 1; }
+                 if (feature.properties.LENGTH = 5000- 7500)  { id = 3; }
+                 if (feature.properties.LENGTH = 7500- 10000)  { id = 4; }
+                else { id = 5;} // All other property types from attribute table
+                return L.marker(latlng, {icon: L.divIcon({className: 'fa-solid fa-jet-fighter' + (id + 1).toString() })});
+            },
+              attribution: 'Federal Aviation Administration | Runways of the United States, Puerto Rico, and Virgin Islands | Base Map openstreetmaps; Stadia.AlidadeSmoothDark | Map: JTurner'
+          }).addTo(mymap);
+
+
+
+
+
+
+
+    // 6. Set function for color ramp
+    colors = chroma.scale('Greens').colors(4); //we'll use 5 classes of purples
+
+    // this function manually defines your choropleth classification system
+    //so you'll need to figure out which break points you'd like to use
+    //based on the data distribution
+    //this equal interval classification with 5 classes, takes the range of the
+    //data (133) and divides it by 5, to show there are intervals of 27 per class
+    //so...
+
+
+    // 7. Set style function that sets fill color property equal to total Airbnbs
+    function style(feature) {
+        return {
+            fillColor: setColor(feature.properties.LENGTH),
+            fillOpacity: 0.4,
+            weight: 2,
+            opacity: 1,
+            color: 'black',
+            dashArray: '4'
+        };
+    }
+
+    // 9. Create Leaflet Control Object for Legend
+    var legend = L.control({position: 'topright'});
+
+    // 10. Function that runs when legend is added to map
+    legend.onAdd = function () {
+
+        // Create Div Element and Populate it with HTML
+        var div = L.DomUtil.create('div', 'legend');
+        //this line creates a title for the choropleth part of the legend
+        div.innerHTML += '<b>Runway Lengths</b><br />';
+        //notice the class breaks entered at the end of the next 5 lines
+        //the colors specify the shade of purple that we used to do the polygon shading
+        div.innerHTML += '<i style="background: ' + colors[4] + '; opacity: 0.5"></i><p>107+</p>';
+        div.innerHTML += '<i style="background: ' + colors[3] + '; opacity: 0.5"></i><p>80-106</p>';
+        div.innerHTML += '<i style="background: ' + colors[2] + '; opacity: 0.5"></i><p>53-79</p>';
+        div.innerHTML += '<i style="background: ' + colors[1] + '; opacity: 0.5"></i><p>26-52</p>';
+        div.innerHTML += '<i style="background: ' + colors[0] + '; opacity: 0.5"></i><p> 0-25</p>';
+        //this line provides the legend title for the airbnb colored symbols
+        div.innerHTML = '<hr><b>Runway Length<b><br />';
+        //the next 3 lines call the airbnb icon along with its proper color
+        //notice the names of the Airbnb property types listed within the <p> tags at the end of the lines
+        div.innerHTML = '<i class="fa-solid fa-jet-fighter marker-color-1"></i><p>0-1000</p>';
+        div.innerHTML = '<i class="fa-solid fa-jet-fighter marker-color-2"></i><p>1000-2500</p>';
+        div.innerHTML = '<i class="fa-solid fa-jet-fighter marker-color-3"></i><p>2500-5000</p>';
+        div.innerHTML = '<i class="fa-solid fa-jet-fighter marker-color-3"></i><p> 5000-7500 </p>';
+        div.innerHTML = '<i class="fa-solid fa-jet-fighter"></i><p>7500-10000</p>';
+        // Return the Legend div containing the HTML content
+        return div;
+    };
+
+    // 11. Add a legend to map
+    legend.addTo(mymap);
+
+    // 12. Add a scale bar to map
+    L.control.scale({position: 'bottomleft'}).addTo(mymap);
+
+
+</script>
+</body>
+</html>
